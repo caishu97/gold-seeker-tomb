@@ -38,13 +38,13 @@ export class GameEngine {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.8;
+    this.renderer.toneMappingExposure = 1.2;
     this.container.appendChild(this.renderer.domElement);
 
-    // 初始化场景 - 较亮的古墓氛围
+    // 初始化场景 - 明亮的古墓
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x4a3730);
-    this.scene.fog = new THREE.Fog(0x4a3730, 20, 80);
+    this.scene.background = new THREE.Color(0x6b5a4a);
+    this.scene.fog = new THREE.Fog(0x6b5a4a, 40, 120);
 
     // 初始化相机
     this.camera = new THREE.PerspectiveCamera(
@@ -62,33 +62,30 @@ export class GameEngine {
   }
 
   /**
-   * 设置场景基础光照
+   * 设置场景基础光照 - 明亮的古墓照明
    */
   setupLighting() {
-    // 环境光 - 较亮，能看清整个古墓
-    const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.8);
+    // 环境光 - 非常亮
+    const ambientLight = new THREE.AmbientLight(0xffeedd, 1.5);
     this.scene.add(ambientLight);
 
-    // 半球光 - 模拟古墓天光
-    const hemiLight = new THREE.HemisphereLight(0xffeeb1, 0x080820, 0.6);
+    // 半球光
+    const hemiLight = new THREE.HemisphereLight(0xffe4b5, 0x7a5c3a, 1.0);
     this.scene.add(hemiLight);
 
-    // 方向光 - 主光源
-    const moonLight = new THREE.DirectionalLight(0xfff0dd, 1.0);
-    moonLight.position.set(20, 30, 10);
-    moonLight.castShadow = true;
-    moonLight.shadow.camera.near = 0.5;
-    moonLight.shadow.camera.far = 100;
-    moonLight.shadow.camera.left = -30;
-    moonLight.shadow.camera.right = 30;
-    moonLight.shadow.camera.top = 30;
-    moonLight.shadow.camera.bottom = -30;
-    this.scene.add(moonLight);
-
-    // 补充点光源照亮角落
-    const pointLight1 = new THREE.PointLight(0xffaa00, 0.5, 30);
-    pointLight1.position.set(0, 5, 0);
-    this.scene.add(pointLight1);
+    // 主方向光 - 暖色调太阳光
+    const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
+    sunLight.position.set(30, 50, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 150;
+    sunLight.shadow.camera.left = -50;
+    sunLight.shadow.camera.right = 50;
+    sunLight.shadow.camera.top = 50;
+    sunLight.shadow.camera.bottom = -50;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    this.scene.add(sunLight);
   }
 
   /**
@@ -147,8 +144,8 @@ export class GameEngine {
     const playerPos = this.player.getPosition();
     const playerRotation = this.player.getRotation();
 
-    // 相机位于玩家后方偏上
-    const offset = new THREE.Vector3(0, 3, -5);
+    // 相机位于玩家后方偏上 - 稍远一些
+    const offset = new THREE.Vector3(0, 4, -7);
     offset.applyEuler(playerRotation);
 
     const targetPos = playerPos.clone().add(offset);
@@ -187,7 +184,7 @@ export class GameEngine {
     this.scene.add(this.player.getMesh());
 
     // 相机初始位置
-    this.camera.position.copy(position).add(new THREE.Vector3(0, 3, -5));
+    this.camera.position.copy(position).add(new THREE.Vector3(0, 4, -7));
     this.camera.lookAt(position);
   }
 

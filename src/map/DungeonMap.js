@@ -5,7 +5,7 @@ import { Chest } from '../entities/Chest.js';
 
 /**
  * 古墓地图类
- * 负责将生成的网格数据转换为3D场景
+ * 负责将生成的网格数据转换为3D场景 - 改造为明亮的古代宫殿风格
  */
 export class DungeonMap {
   data;
@@ -15,11 +15,11 @@ export class DungeonMap {
   evacuationZone = null;
   collisionBounds = [];
 
-  static CELL_SIZE = 2; // 每个网格单元2米
-  static WALL_HEIGHT = 3; // 墙高3米
+  static CELL_SIZE = 3; // 每个网格单元3米 - 更宽敞
+  static WALL_HEIGHT = 4; // 墙高4米
 
   constructor(seed) {
-    const generator = new DungeonGenerator(40, 40, 2, seed);
+    const generator = new DungeonGenerator(30, 30, 1, seed);
     this.data = generator.generate();
     this.mesh = new THREE.Group();
     this.buildMesh();
@@ -27,29 +27,45 @@ export class DungeonMap {
   }
 
   /**
-   * 构建3D网格
+   * 构建3D场景 - 古代宫殿风格
    */
   buildMesh() {
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    // 创建材质 - 古代石材质感
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: 0xc4956a,
+      color: 0xb8a88a,
+      roughness: 0.8,
+      metalness: 0.0,
+    });
+
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      color: 0xa09070,
+      roughness: 0.9,
+      metalness: 0.05,
+    });
+
+    const floorPatternMaterial = new THREE.MeshStandardMaterial({
+      color: 0x8b7355,
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+
+    const wallTopMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9a8a6a,
       roughness: 0.7,
       metalness: 0.05,
     });
-    const floorMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8b7355,
-      roughness: 0.8,
-      metalness: 0.02,
-    });
-    const stairMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5c4033,
-      roughness: 0.8,
-      metalness: 0.2,
+
+    const columnMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc4b59a,
+      roughness: 0.6,
+      metalness: 0.1,
     });
 
     const wallInstances = [];
     const floorInstances = [];
-    const stairInstances = [];
+    const floorPatternInstances = [];
+    const columnInstances = [];
+    const wallTopInstances = [];
 
     for (let d = 0; d < this.data.depth; d++) {
       for (let y = 0; y < this.data.height; y++) {
@@ -60,49 +76,66 @@ export class DungeonMap {
           const posZ = y * DungeonMap.CELL_SIZE;
 
           if (cell === CellType.WALL) {
-            // 墙
-            const matrix = new THREE.Matrix4();
-            matrix.compose(
+            // 主墙体
+            const wallMatrix = new THREE.Matrix4();
+            wallMatrix.compose(
               new THREE.Vector3(posX, posY + DungeonMap.WALL_HEIGHT / 2, posZ),
               new THREE.Quaternion(),
               new THREE.Vector3(DungeonMap.CELL_SIZE, DungeonMap.WALL_HEIGHT, DungeonMap.CELL_SIZE)
             );
-            wallInstances.push(matrix);
+            wallInstances.push(wallMatrix);
+
+            // 墙顶装饰
+            const topMatrix = new THREE.Matrix4();
+            topMatrix.compose(
+              new THREE.Vector3(posX, posY + DungeonMap.WALL_HEIGHT + 0.2, posZ),
+              new THREE.Quaternion(),
+              new THREE.Vector3(DungeonMap.CELL_SIZE + 0.2, 0.4, DungeonMap.CELL_SIZE + 0.2)
+            );
+            wallTopInstances.push(topMatrix);
+
+            // 如果是外墙，添加柱子装饰
+            if (this.isOuterWall(x, y)) {
+              const colMatrix = new THREE.Matrix4();
+              colMatrix.compose(
+                new THREE.Vector3(posX, posY + DungeonMap.WALL_HEIGHT / 2 + 1, posZ),
+                new THREE.Quaternion(),
+                new THREE.Vector3(0.4, 2, 0.4)
+              );
+              columnInstances.push(colMatrix);
+            }
           } else if (cell === CellType.FLOOR) {
-            // 地板
+            // 主地板 - 棋盘格效果
+            const material = (x + y) % 2 === 0 ? floorMaterial : floorPatternMaterial;
             const matrix = new THREE.Matrix4();
             matrix.compose(
               new THREE.Vector3(posX, posY, posZ),
               new THREE.Quaternion(),
-              new THREE.Vector3(DungeonMap.CELL_SIZE, 0.2, DungeonMap.CELL_SIZE)
+              new THREE.Vector3(DungeonMap.CELL_SIZE, 0.3, DungeonMap.CELL_SIZE)
             );
-            floorInstances.push(matrix);
-
-            // 天花板（不在最顶层）
-            if (d < this.data.depth - 1) {
-              const ceilMatrix = new THREE.Matrix4();
-              ceilMatrix.compose(
-                new THREE.Vector3(posX, posY + DungeonMap.WALL_HEIGHT, posZ),
-                new THREE.Quaternion(),
-                new THREE.Vector3(DungeonMap.CELL_SIZE, 0.2, DungeonMap.CELL_SIZE)
-              );
-              wallInstances.push(ceilMatrix);
+            
+            if ((x + y) % 2 === 0) {
+              floorInstances.push(matrix);
+            } else {
+              floorPatternInstances.push(matrix);
             }
-          } else if (cell === CellType.STAIR) {
-            // 楼梯 - 斜坡
-            const matrix = new THREE.Matrix4();
-            matrix.compose(
-              new THREE.Vector3(posX, posY + DungeonMap.CELL_SIZE / 2, posZ),
+
+            // 天花板
+            const ceilMatrix = new THREE.Matrix4();
+            ceilMatrix.compose(
+              new THREE.Vector3(posX, posY + DungeonMap.WALL_HEIGHT + 1, posZ),
               new THREE.Quaternion(),
-              new THREE.Vector3(DungeonMap.CELL_SIZE, DungeonMap.CELL_SIZE, DungeonMap.CELL_SIZE)
+              new THREE.Vector3(DungeonMap.CELL_SIZE, 0.3, DungeonMap.CELL_SIZE)
             );
-            stairInstances.push(matrix);
+            floorInstances.push(ceilMatrix);
           }
         }
       }
     }
 
-    // 使用InstancedMesh优化性能
+    // 创建InstancedMesh
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+
     if (wallInstances.length > 0) {
       const wallMesh = new THREE.InstancedMesh(geometry, wallMaterial, wallInstances.length);
       wallInstances.forEach((matrix, i) => wallMesh.setMatrixAt(i, matrix));
@@ -118,15 +151,165 @@ export class DungeonMap {
       this.mesh.add(floorMesh);
     }
 
-    if (stairInstances.length > 0) {
-      const stairMesh = new THREE.InstancedMesh(geometry, stairMaterial, stairInstances.length);
-      stairInstances.forEach((matrix, i) => stairMesh.setMatrixAt(i, matrix));
-      stairMesh.receiveShadow = true;
-      this.mesh.add(stairMesh);
+    if (floorPatternInstances.length > 0) {
+      const patternMesh = new THREE.InstancedMesh(geometry, floorPatternMaterial, floorPatternInstances.length);
+      floorPatternInstances.forEach((matrix, i) => patternMesh.setMatrixAt(i, matrix));
+      patternMesh.receiveShadow = true;
+      this.mesh.add(patternMesh);
     }
+
+    if (wallTopInstances.length > 0) {
+      const topMesh = new THREE.InstancedMesh(geometry, wallTopMaterial, wallTopInstances.length);
+      wallTopInstances.forEach((matrix, i) => topMesh.setMatrixAt(i, matrix));
+      topMesh.castShadow = true;
+      this.mesh.add(topMesh);
+    }
+
+    // 添加环境装饰
+    this.addDecorations();
+
+    // 添加火把照明
+    this.addTorches();
 
     // 创建撤离点标记
     this.createEvacuationZone();
+  }
+
+  /**
+   * 判断是否为外墙
+   */
+  isOuterWall(x, y) {
+    // 检查周围是否有地板
+    let hasFloor = false;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < this.data.width && ny >= 0 && ny < this.data.height) {
+          if (this.data.grid[0][ny][nx] === CellType.FLOOR) {
+            hasFloor = true;
+          }
+        }
+      }
+    }
+    return hasFloor;
+  }
+
+  /**
+   * 添加环境装饰物
+   */
+  addDecorations() {
+    const roomCenters = [];
+    
+    // 找到每个房间中心
+    for (const room of this.data.rooms) {
+      const center = new THREE.Vector3(
+        (room.x + room.width / 2) * DungeonMap.CELL_SIZE,
+        0,
+        (room.y + room.height / 2) * DungeonMap.CELL_SIZE
+      );
+      roomCenters.push(center);
+    }
+
+    // 在房间中心添加装饰
+    roomCenters.forEach((center, index) => {
+      // 中央石台
+      if (index % 2 === 0) {
+        const pedestalGeo = new THREE.BoxGeometry(1.5, 0.8, 1.5);
+        const pedestalMat = new THREE.MeshStandardMaterial({
+          color: 0x8b7355,
+          roughness: 0.7,
+        });
+        const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+        pedestal.position.set(center.x, 0.4, center.z);
+        pedestal.castShadow = true;
+        this.mesh.add(pedestal);
+      }
+
+      // 古代花瓶
+      if (index % 3 === 0) {
+        const vaseGeo = new THREE.CylinderGeometry(0.3, 0.15, 1.2, 8);
+        const vaseMat = new THREE.MeshStandardMaterial({
+          color: 0xcd853f,
+          roughness: 0.5,
+        });
+        const vase = new THREE.Mesh(vaseGeo, vaseMat);
+        vase.position.set(center.x + 2, 0.6, center.z + 2);
+        vase.castShadow = true;
+        this.mesh.add(vase);
+      }
+
+      // 角落雕像
+      if (index % 4 === 0) {
+        const statueBaseGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.5, 6);
+        const statueBaseMat = new THREE.MeshStandardMaterial({ color: 0x9a8a6a });
+        const statueBase = new THREE.Mesh(statueBaseGeo, statueBaseMat);
+        statueBase.position.set(center.x - 3, 0.25, center.z - 3);
+        this.mesh.add(statueBase);
+
+        const statueBodyGeo = new THREE.CylinderGeometry(0.25, 0.4, 2, 6);
+        const statueBodyMat = new THREE.MeshStandardMaterial({ color: 0xb8a88a });
+        const statueBody = new THREE.Mesh(statueBodyGeo, statueBodyMat);
+        statueBody.position.set(center.x - 3, 1.5, center.z - 3);
+        statueBody.castShadow = true;
+        this.mesh.add(statueBody);
+      }
+    });
+  }
+
+  /**
+   * 添加火把照明
+   */
+  addTorches() {
+    const torchPositions = [];
+    
+    // 沿走廊和房间墙壁放置火把
+    for (let y = 0; y < this.data.height; y += 4) {
+      for (let x = 0; x < this.data.width; x += 4) {
+        if (this.data.grid[0][y][x] === CellType.WALL) {
+          // 检查旁边的地板
+          if ((x + 1 < this.data.width && this.data.grid[0][y][x + 1] === CellType.FLOOR) ||
+              (x - 1 >= 0 && this.data.grid[0][y][x - 1] === CellType.FLOOR) ||
+              (y + 1 < this.data.height && this.data.grid[0][y + 1][x] === CellType.FLOOR) ||
+              (y - 1 >= 0 && this.data.grid[0][y - 1][x] === CellType.FLOOR)) {
+            torchPositions.push(new THREE.Vector3(
+              x * DungeonMap.CELL_SIZE,
+              DungeonMap.WALL_HEIGHT - 0.5,
+              y * DungeonMap.CELL_SIZE
+            ));
+          }
+        }
+      }
+    }
+
+    // 最多放置20个火把
+    const selectedPositions = torchPositions.slice(0, 20);
+    
+    selectedPositions.forEach((pos) => {
+      // 火把棍子
+      const stickGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 4);
+      const stickMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
+      const stick = new THREE.Mesh(stickGeo, stickMat);
+      stick.position.copy(pos);
+      stick.rotation.z = Math.PI / 6;
+      this.mesh.add(stick);
+
+      // 火焰
+      const flameGeo = new THREE.SphereGeometry(0.15, 8, 8);
+      const flameMat = new THREE.MeshBasicMaterial({
+        color: 0xff6600,
+        transparent: true,
+        opacity: 0.8,
+      });
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(pos.x, pos.y + 0.3, pos.z);
+      this.mesh.add(flame);
+
+      // 火光
+      const light = new THREE.PointLight(0xff8800, 2, 15);
+      light.position.set(pos.x, pos.y + 0.2, pos.z);
+      this.mesh.add(light);
+    });
   }
 
   /**
@@ -136,34 +319,48 @@ export class DungeonMap {
     const evacPos = this.data.evacuationPoint.clone().multiplyScalar(DungeonMap.CELL_SIZE);
     evacPos.y = 0.1;
 
-    // 地面上发光圆环
-    const geometry = new THREE.RingGeometry(1, 1.5, 32);
-    const material = new THREE.MeshBasicMaterial({
+    // 大型发光圆环
+    const ringGeo = new THREE.RingGeometry(2, 3, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
       color: 0x00ff88,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.6,
     });
-    this.evacuationZone = new THREE.Mesh(geometry, material);
+    this.evacuationZone = new THREE.Mesh(ringGeo, ringMat);
     this.evacuationZone.rotation.x = -Math.PI / 2;
     this.evacuationZone.position.copy(evacPos);
     this.mesh.add(this.evacuationZone);
 
+    // 内部小圆环
+    const innerRingGeo = new THREE.RingGeometry(0.5, 1.5, 32);
+    const innerRingMat = new THREE.MeshBasicMaterial({
+      color: 0x88ffcc,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.copy(evacPos);
+    innerRing.position.y = 0.15;
+    this.mesh.add(innerRing);
+
     // 光柱效果
-    const pillarGeo = new THREE.CylinderGeometry(0.3, 1.2, 4, 8, 1, true);
+    const pillarGeo = new THREE.CylinderGeometry(0.5, 2, 6, 8, 1, true);
     const pillarMat = new THREE.MeshBasicMaterial({
       color: 0x00ff88,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.1,
       side: THREE.DoubleSide,
     });
     const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-    pillar.position.set(evacPos.x, 2, evacPos.z);
+    pillar.position.set(evacPos.x, 3, evacPos.z);
     this.mesh.add(pillar);
 
-    // 点光源
-    const light = new THREE.PointLight(0x00ff88, 2, 10);
-    light.position.set(evacPos.x, 2, evacPos.z);
+    // 强光源
+    const light = new THREE.PointLight(0x00ff88, 5, 20);
+    light.position.set(evacPos.x, 3, evacPos.z);
     this.mesh.add(light);
   }
 
@@ -196,7 +393,7 @@ export class DungeonMap {
     if (this.evacuationZone) {
       const scale = 1 + Math.sin(elapsedTime * 2) * 0.1;
       this.evacuationZone.scale.set(scale, scale, scale);
-      (this.evacuationZone.material).opacity = 0.4 + Math.sin(elapsedTime * 2) * 0.2;
+      this.evacuationZone.material.opacity = 0.4 + Math.sin(elapsedTime * 2) * 0.2;
     }
 
     // 更新怪物
@@ -240,7 +437,7 @@ export class DungeonMap {
       Math.pow(playerPos.x - evacPos.x, 2) + 
       Math.pow(playerPos.z - evacPos.z, 2)
     );
-    return dist < 3;
+    return dist < 4;
   }
 
   /**
@@ -276,6 +473,20 @@ export class DungeonMap {
       }
     }
     return false;
+  }
+
+  /**
+   * 获取宝箱
+   */
+  getChests() {
+    return this.chests;
+  }
+
+  /**
+   * 获取怪物
+   */
+  getMonsters() {
+    return this.monsters;
   }
 
   /**
