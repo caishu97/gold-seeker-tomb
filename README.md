@@ -6,7 +6,7 @@
 
 ## 在线试玩
 
-马上体验游戏：[👉 点击这里开始摸金探险](https://caishu97.github.io/摸金探险/)
+马上体验游戏：[👉 点击这里开始摸金探险](https://caishu97.github.io/gold-seeker-tomb/)
 
 ## 游戏截图
 
