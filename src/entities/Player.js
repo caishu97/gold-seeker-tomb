@@ -18,10 +18,10 @@ export class Player {
 
   // 输入状态
   inputState = {
-    w: false,
-    a: false,
-    s: false,
-    d: false,
+    up: false,
+    left: false,
+    down: false,
+    right: false,
     shift: false,
     space: false,
     mouseX: 0,
@@ -86,23 +86,23 @@ export class Player {
   }
 
   onKeyDown(event) {
-    switch (event.key.toLowerCase()) {
-      case 'w': this.inputState.w = true; break;
-      case 'a': this.inputState.a = true; break;
-      case 's': this.inputState.s = true; break;
-      case 'd': this.inputState.d = true; break;
-      case 'shift': this.inputState.shift = true; break;
+    switch (event.key) {
+      case 'ArrowUp': this.inputState.up = true; break;
+      case 'ArrowLeft': this.inputState.left = true; break;
+      case 'ArrowDown': this.inputState.down = true; break;
+      case 'ArrowRight': this.inputState.right = true; break;
+      case 'Shift': this.inputState.shift = true; break;
       case ' ': this.inputState.space = true; break;
     }
   }
 
   onKeyUp(event) {
-    switch (event.key.toLowerCase()) {
-      case 'w': this.inputState.w = false; break;
-      case 'a': this.inputState.a = false; break;
-      case 's': this.inputState.s = false; break;
-      case 'd': this.inputState.d = false; break;
-      case 'shift': this.inputState.shift = false; break;
+    switch (event.key) {
+      case 'ArrowUp': this.inputState.up = false; break;
+      case 'ArrowLeft': this.inputState.left = false; break;
+      case 'ArrowDown': this.inputState.down = false; break;
+      case 'ArrowRight': this.inputState.right = false; break;
+      case 'Shift': this.inputState.shift = false; break;
       case ' ': this.inputState.space = false; break;
     }
   }
@@ -142,10 +142,10 @@ export class Player {
   updateMovement(deltaTime) {
     const moveDirection = new THREE.Vector3();
 
-    if (this.inputState.w) moveDirection.z += 1;
-    if (this.inputState.s) moveDirection.z -= 1;
-    if (this.inputState.a) moveDirection.x -= 1;
-    if (this.inputState.d) moveDirection.x += 1;
+    if (this.inputState.up) moveDirection.z += 1;
+    if (this.inputState.down) moveDirection.z -= 1;
+    if (this.inputState.left) moveDirection.x -= 1;
+    if (this.inputState.right) moveDirection.x += 1;
 
     if (moveDirection.length() > 0) {
       moveDirection.normalize();
