@@ -18,7 +18,10 @@ export class GameState {
   maxWeight = 50;
   currentLevel = 1;
 
-  // 角色信息
+  // 本局游戏数据
+  sessionItems = []; // 本局收集的物品
+  sessionWeapons = []; // 本局获得的武器
+  hasSeenTutorial = false; // 是否看过教程
   selectedCharacter = null;
 
   // 游戏进行状态
@@ -37,6 +40,21 @@ export class GameState {
       GameState.instance = new GameState();
     }
     return GameState.instance;
+  }
+
+  // 本局物品管理
+  addSessionItem(item) {
+    this.sessionItems.push(item);
+    this.emit('sessionItemsChanged', this.sessionItems);
+  }
+
+  getSessionItems() {
+    return [...this.sessionItems];
+  }
+
+  clearSessionItems() {
+    this.sessionItems = [];
+    this.emit('sessionItemsChanged', this.sessionItems);
   }
 
   // === 角色选择 ===
@@ -240,21 +258,23 @@ export class GameState {
     }
   }
 
-  // === 撤离与重置 ===
   /**
    * 成功撤离 - 将局内物品转移到仓库
    */
-  evacuate(items, weapons) {
+  evacuate() {
+    const items = [...this.sessionItems];
     items.forEach((item) => this.warehouse.push(item));
-    // 保留装备的武器
-    this.emit('evacuationSuccess', { items, weapons });
+    this.sessionItems = [];
+    this.emit('evacuationSuccess', { items, weapons: this.sessionWeapons });
     this.emit('warehouseChanged', this.warehouse);
   }
 
   /**
-   * 死亡 - 丢失局内所有装备
+   * 死亡 - 丢失局内所有装备和物品
    */
   onDeath() {
+    this.sessionItems = [];
+    this.sessionWeapons = [];
     this.equippedWeapons = [];
     this.currentHealth = this.maxHealth;
     this.currentWeight = 0;
@@ -268,6 +288,8 @@ export class GameState {
     this.currentHealth = this.maxHealth;
     this.currentWeight = 0;
     this.currentArmor = 0;
+    this.sessionItems = [];
+    this.sessionWeapons = [];
     this.gamePhase = GamePhase.PREPARATION;
     this.emit('statsChanged', this.getStats());
   }

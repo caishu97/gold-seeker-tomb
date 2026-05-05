@@ -25,8 +25,15 @@ class Game {
     // 设置UI事件监听
     this.setupUIEvents();
 
-    // 初始显示主菜单
-    this.uiManager.showScreen('main-menu');
+    // 检查是否是首次进入
+    const hasVisited = localStorage.getItem('goldSeekerVisited');
+    if (!hasVisited) {
+      // 首次进入，显示教程
+      localStorage.setItem('goldSeekerVisited', 'true');
+      this.uiManager.showScreen('tutorial');
+    } else {
+      this.uiManager.showScreen('main-menu');
+    }
   }
 
   /**
@@ -38,6 +45,9 @@ class Game {
       switch (phase) {
         case GamePhase.MENU:
           this.uiManager.showScreen('main-menu');
+          break;
+        case 'TUTORIAL':
+          this.uiManager.showScreen('tutorial');
           break;
         case GamePhase.PREPARATION:
           this.uiManager.showScreen('preparation');

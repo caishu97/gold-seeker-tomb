@@ -41,10 +41,10 @@ export class GameEngine {
     this.renderer.toneMappingExposure = 0.8;
     this.container.appendChild(this.renderer.domElement);
 
-    // 初始化场景
+    // 初始化场景 - 较亮的古墓氛围
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a0a1a);
-    this.scene.fog = new THREE.FogExp2(0x0a0a1a, 0.05);
+    this.scene.background = new THREE.Color(0x4a3730);
+    this.scene.fog = new THREE.Fog(0x4a3730, 20, 80);
 
     // 初始化相机
     this.camera = new THREE.PerspectiveCamera(
@@ -65,21 +65,30 @@ export class GameEngine {
    * 设置场景基础光照
    */
   setupLighting() {
-    // 环境光 - 极暗，营造古墓氛围
-    const ambientLight = new THREE.AmbientLight(0x001133, 0.15);
+    // 环境光 - 较亮，能看清整个古墓
+    const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.8);
     this.scene.add(ambientLight);
 
-    // 方向光 - 微弱的月光/天光从缝隙照入
-    const moonLight = new THREE.DirectionalLight(0x2244aa, 0.2);
-    moonLight.position.set(10, 20, 10);
+    // 半球光 - 模拟古墓天光
+    const hemiLight = new THREE.HemisphereLight(0xffeeb1, 0x080820, 0.6);
+    this.scene.add(hemiLight);
+
+    // 方向光 - 主光源
+    const moonLight = new THREE.DirectionalLight(0xfff0dd, 1.0);
+    moonLight.position.set(20, 30, 10);
     moonLight.castShadow = true;
     moonLight.shadow.camera.near = 0.5;
-    moonLight.shadow.camera.far = 50;
-    moonLight.shadow.camera.left = -20;
-    moonLight.shadow.camera.right = 20;
-    moonLight.shadow.camera.top = 20;
-    moonLight.shadow.camera.bottom = -20;
+    moonLight.shadow.camera.far = 100;
+    moonLight.shadow.camera.left = -30;
+    moonLight.shadow.camera.right = 30;
+    moonLight.shadow.camera.top = 30;
+    moonLight.shadow.camera.bottom = -30;
     this.scene.add(moonLight);
+
+    // 补充点光源照亮角落
+    const pointLight1 = new THREE.PointLight(0xffaa00, 0.5, 30);
+    pointLight1.position.set(0, 5, 0);
+    this.scene.add(pointLight1);
   }
 
   /**

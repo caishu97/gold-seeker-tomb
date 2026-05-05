@@ -32,14 +32,14 @@ export class DungeonMap {
   buildMesh() {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4a3728,
-      roughness: 0.9,
-      metalness: 0.1,
+      color: 0xc4956a,
+      roughness: 0.7,
+      metalness: 0.05,
     });
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      roughness: 0.95,
-      metalness: 0.05,
+      color: 0x8b7355,
+      roughness: 0.8,
+      metalness: 0.02,
     });
     const stairMaterial = new THREE.MeshStandardMaterial({
       color: 0x5c4033,
