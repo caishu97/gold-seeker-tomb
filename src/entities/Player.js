@@ -128,7 +128,7 @@ export class Player {
   updateRotation() {
     if (!this.isPointerLocked) return;
 
-    this.rotation.y -= this.inputState.mouseX * this.mouseSensitivity;
+    this.rotation.y += this.inputState.mouseX * this.mouseSensitivity;
     this.rotation.x -= this.inputState.mouseY * this.mouseSensitivity;
     this.rotation.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, this.rotation.x));
 

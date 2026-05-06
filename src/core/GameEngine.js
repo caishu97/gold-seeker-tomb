@@ -144,13 +144,19 @@ export class GameEngine {
     const playerPos = this.player.getPosition();
     const playerRotation = this.player.getRotation();
 
-    // 相机位于玩家后方偏上 - 稍远一些
-    const offset = new THREE.Vector3(0, 4, -7);
+    // 相机位于玩家后方 - 缩短距离防止穿墙
+    const offset = new THREE.Vector3(0, 2.0, -2.5);
     offset.applyEuler(playerRotation);
 
-    const targetPos = playerPos.clone().add(offset);
+    let targetPos = playerPos.clone().add(offset);
+    
+    // 限制相机不低于地面
+    if (targetPos.y < 1.5) {
+      targetPos.y = 1.5;
+    }
+
     this.camera.position.lerp(targetPos, 0.1);
-    this.camera.lookAt(playerPos.x, playerPos.y + 1.5, playerPos.z);
+    this.camera.lookAt(playerPos.x, playerPos.y + 1.2, playerPos.z);
   }
 
   /**
@@ -184,7 +190,8 @@ export class GameEngine {
     this.scene.add(this.player.getMesh());
 
     // 相机初始位置
-    this.camera.position.copy(position).add(new THREE.Vector3(0, 4, -7));
+    this.camera.position.copy(position).add(new THREE.Vector3(0, 2.0, -2.5));
+    this.camera.lookAt(position);
     this.camera.lookAt(position);
   }
 
